@@ -50,6 +50,10 @@ def menu():
         print("Press and hold the guess button to cancel your game")
         value = generate_number()
         while not end_of_game:
+            if GPIO.input(btn_increase) == 0:
+                btn_increase_pressed(btn_increase)
+            if GPIO.input(btn_submit) == 0:
+                btn_guess_pressed(btn_submit)
             pass
     elif option == "Q":
         print("Come back soon!")
