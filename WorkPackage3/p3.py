@@ -100,7 +100,7 @@ def setup():
 
     # Setup debouncing and callbacks
     GPIO.add_event_callback(btn_increase,btn_increase_pressed,bouncetime=200)
-    GPIO.add_event_callback(btn_submit,btn_increase_pressed, bouncetime=200)
+    GPIO.add_event_callback(btn_submit,btn_guess_pressed, bouncetime=200)
 
 # Load high scores
 def fetch_scores():
