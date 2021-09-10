@@ -6,16 +6,20 @@ import os
 
 # some global variables that need to change as we run the program
 end_of_game = None  # set if the user wins or ends the game
-
+Score_Values = []   # Stores the scores fetched from the EEPROM using the fetch_scores function
+totalscores = 0
+scorecount = 0
+value = 0
+guess_num = 0
 # DEFINE THE PINS USED HERE
 LED_value = [11, 13, 15]
 LED_accuracy = 32
 btn_submit = 16
 btn_increase = 18
-buzzer = None
+buzzer = 33
 eeprom = ES2EEPROMUtils.ES2EEPROM()
-
-
+buzzerpwm= None
+ledpwm = None
 # Print the game banner
 def welcome():
     os.system('clear')
@@ -58,37 +62,95 @@ def display_scores(count, raw_data):
     # print the scores to the screen in the expected format
     print("There are {} scores. Here are the top 3!".format(count))
     # print out the scores in the required format
+
+    counts = 1
+    place = 0
+
+    for data in raw_data:
+        if place == 1:
+            place += 1
+        else :
+            print("{} - {} took {} guesses".format(counts, data[0],data[1]))
+            counts +=1
+        if counts == 4:
+            break
     pass
 
 
 # Setup Pins
 def setup():
-    # Setup board mode
-    # Setup regular GPIO
-    # Setup PWM channels
-    # Setup debouncing and callbacks
-    pass
+    global LED_value, btn_submit, buzzer, btn_increase, LED_accuracy, ledpwm, buzzerpwm
 
+    # Setup board mode
+    GPIO.setmode(GPIO.BOARD)
+    # Setup regular GPIO
+    GPIO.setup(LED_value[0], GPIO.OUT)
+    GPIO.setup(LED_value[1], GPIO.OUT)
+    GPIO.setup(LED_value[2], GPIO.OUT)
+    GPIO.setup(LED_accuracy, GPIO.OUT)
+    GPIO.setup(buzzer, GPIO.OUT)
+
+    # Configuring the pull up or pull down resistors:
+    GPIO.setup(btn_increase, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(btn_submit, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    # Setup PWM channels
+    ledpwm = GPIO.PWM(LED_accuracy, 50)
+    buzzerpwm = GPIO.PWM(buzzer, 0.000000001)
+    GPIO.output(buzzer, GPIO.LOW)
+
+    # Setup debouncing and callbacks
+    GPIO.add_event_callback(btn_increase,btn_increase_pressed,bouncetime=200)
+    GPIO.add_event_callback(btn_submit,btn_increase_pressed, bouncetime=200)
 
 # Load high scores
 def fetch_scores():
     # get however many scores there are
-    score_count = None
+    score_count = eeprom.read_byte(0)
+
+    # Form an array of scores and names taken from the EEPROM into a 2D array
+    scorelist = []
     # Get the scores
-    
     # convert the codes back to ascii
-    
-    # return back the results
-    return score_count, scores
+    for i in range(1, score_count+1):
+        reset = []  #ensures that reset is emptied before every iteration
+        score = read_block(i,4) # This will read registers 1 to 4 from block i and place it into scores
+
+        # Convert the "letter" registers into char values to generate words
+        letter1 = chr(score[0])
+        letter2 = chr(score[1])
+        letter3 = chr(score[2])
+
+        # Turn the letters into a word for the user name
+        name = letter1 + letter2 + letter3
+        # Adds the name formed and scores to an empty reset array as 2 entries
+        reset.append(name)
+        reset.append(score[3])
+
+        scorelist.append(reset) #Adds the values from reset to scorelist, to form a 2D array of Name and Score
+     # return back the results
+    return score_count, scorelist
 
 
 # Save high scores
 def save_scores():
+    global Score_Values, totalscores, scorecount
     # fetch scores
-    # include new score
-    # sort
-    # update total amount of scores
-    # write new scores
+    Score_Values = fetch_scores()
+    eeprom.write_byte(0, totalscores+ 1)  # update total amount of scores
+    Name = input("Enter a 3 letter name: \n")  # Prompt user for their Name
+    inputScore = [Name[:3], scorecount] # Holder for the name and score number to be sent to the eeprom
+    Score_Values.append(inputScore) #Adds the name and score counts to the score values array
+
+    #sort
+    sortedArray = sorted(Score_Values,key=lambda x: x[1])
+
+    #Write the given values to the EEPROM
+    transmittedvalues = []
+    for Scores in sortedArray: #adds the name and score number to a matrix which is written into the eeprom
+        for i in range(3): #loops through 3 letters in sortedArray and converts it into binary for the EEPROM
+            transmittedvalues.append(ord(Scores[0][i]))
+        transmittedvalues.append(sortedArray[1])
+    eeprom.write_block(1,transmittedvalues)
     pass
 
 
@@ -102,8 +164,19 @@ def btn_increase_pressed(channel):
     # Increase the value shown on the LEDs
     # You can choose to have a global variable store the user's current guess, 
     # or just pull the value off the LEDs when a user makes a guess
-    pass
+    global guess_num
+    if guess_num == 8:
+        guess_num = 0
 
+    # Increase the value shown on the LEDs
+
+    if GPIO.event_detected(channel):
+        guess_num += 1
+
+        GPIO.output(LED_value[0], guess_num & 0x01)
+        GPIO.output(LED_value[1], guess_num & 0x02)
+        GPIO.output(LED_value[2], guess_num & 0x04)
+    pass
 
 # Guess button
 def btn_guess_pressed(channel):
@@ -118,6 +191,37 @@ def btn_guess_pressed(channel):
     # - add the new score
     # - sort the scores
     # - Store the scores back to the EEPROM, being sure to update the score count
+    global guess_num, scorecount, buzzer, value
+
+    # If they've pressed and held the button, clear up the GPIO and take them back to the menu screen
+    time_s = time.time()
+    time_button = time.time() - time_s
+    abs_value = abs(value)
+    abs_gn = abs(guess_num)
+
+    # Compare the actual value with the user value displayed on the LEDs
+    while GPIO.input(channel) == 0:
+        pass
+
+    if GPIO.event_detected(channel):
+        if time_button > 2:
+            GPIO.cleanup()
+            menu()
+
+        # Change the PWM LED
+        elif (guess_num != value):
+            scorecount += 1
+            accuracy_leds()
+            # if it's close enough, adjust the buzzer
+            if (abs(value) - abs(guess_num) <= 3):
+                trigger_buzzer()
+        # if it's an exact guess:
+        else:
+            count += 1
+            GPIO.output(LED_value, False)
+            GPIO.output(buzzer, GPIO.LOW)
+            save_scores()
+            menu()
     pass
 
 
@@ -127,16 +231,41 @@ def accuracy_leds():
     # - The % brightness should be directly proportional to the % "closeness"
     # - For example if the answer is 6 and a user guesses 4, the brightness should be at 4/6*100 = 66%
     # - If they guessed 7, the brightness would be at ((8-7)/(8-6)*100 = 50%
+    global guess_num, ledpwm,value
+    ledpwm.start(0)
+    gn_1 = 8 - guess_num
+    val_1 = 8 - value
+    # Set the brightness of the LED based on how close the guess is to the answer
+    if (guess_num < value):
+        duty_cycle = (guess_num / value) * 100
+        ledpwm.ChangeDutyCycle(duty_cycle)
+
+    # - The % brightness should be directly proportional to the % "closeness"
+    # - For example if the answer is 6 and a user guesses 4, the brightness should be at 4/6*100 = 66%
+    # - If they guessed 7, the brightness would be at ((8-7)/(8-6)*100 = 50%
+    else:
+        duty_cycle_1 = (gn_1 / val_1) * 100
+        ledpwm.ChangeDutyCycle(duty_cycle_1)
     pass
 
 # Sound Buzzer
 def trigger_buzzer():
+    global guess_num, buzzerpwm, value
     # The buzzer operates differently from the LED
     # While we want the brightness of the LED to change(duty cycle), we want the frequency of the buzzer to change
     # The buzzer duty cycle should be left at 50%
+    buzzerpwm.start(50)
     # If the user is off by an absolute value of 3, the buzzer should sound once every second
+    if abs(guess_num - value) == 1:
+        buzzerpwm.ChanngeFrequency(4)
+
+
     # If the user is off by an absolute value of 2, the buzzer should sound twice every second
+    if abs(guess_num - value) == 2:
+        buzzerpwm.ChanngeFrequency(2)
     # If the user is off by an absolute value of 1, the buzzer should sound 4 times a second
+    if abs(guess_num - value) == 3:
+        buzzerpwm.ChanngeFrequency(1)
     pass
 
 
