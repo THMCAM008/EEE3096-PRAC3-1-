@@ -49,10 +49,6 @@ def menu():
         print("Press and hold the guess button to cancel your game")
         value = generate_number()
         while not end_of_game:
-            if GPIO.input(btn_increase) == 0:
-                btn_increase_pressed(btn_increase)
-            if GPIO.input(btn_submit) == 0:
-                btn_guess_pressed(btn_submit)
             pass
     elif option == "Q":
         print("Come back soon!")
@@ -202,7 +198,7 @@ def btn_guess_pressed(channel):
     # - add the new score
     # - sort the scores
     # - Store the scores back to the EEPROM, being sure to update the score count
-    global guess_num, scorecount, buzzer, value
+    global guess_num, scorecount, buzzer, value,buzzerpwm,ledpwm
 
     # If they've pressed and held the button, clear up the GPIO and take them back to the menu screen
     time_s = time.time()
@@ -223,12 +219,12 @@ def btn_guess_pressed(channel):
             GPIO.output(LED_value[0], GPIO.LOW)
             GPIO.setup(LED_value[1], GPIO.LOW)
             GPIO.setup(LED_value[2], GPIO.LOW)
-            buzerpwm.ChangeDutyCycle(0)
+            buzzerpwm.ChangeDutyCycle(0)
             ledpwm.ChangeDutyCycle(0)
             guess_num = 0
             
             print("Congratulations you have guessed the correct number!")
-            savecores()
+            save_scores()
             menu()
     else:
         GPIO.output(LED_value[0], GPIO.LOW)
@@ -274,7 +270,7 @@ def trigger_buzzer():
     elif abs(value-guess_num)==2:
         buzzerpwm.ChangeFrequency(2)
         buzzerpwm.start(50)
-    elif abs(value-guess_num)==2:
+    elif abs(value-guess_num)==1:
         buzzerpwm.ChangeFrequency(4)
         buzzerpwm.start(50)
     pass
