@@ -217,7 +217,7 @@ def btn_guess_pressed(channel):
         scoreCount+=1
         accuracy_leds() 
         if (abs(value)-abs(GuessNumber)<=3):  
-        trigger_buzzer()
+            trigger_buzzer()
     else:
         scoreCount+=1 # Update scores
         GPIO.output(LED_value, False) # Switch off LEDs
