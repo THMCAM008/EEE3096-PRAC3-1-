@@ -203,23 +203,22 @@ def btn_guess_pressed(channel):
     # If they've pressed and held the button, clear up the GPIO and take them back to the menu screen
     time_s = time.time()
     time_button = time.time() - time_s
-    abs_value = abs(value)
-    abs_gn = abs(guess_num)
+    
 
     # Compare the actual value with the user value displayed on the LEDs
     while GPIO.input(channel) == 0:
         pass
-    if buttonTime>2: 
+    if time_button>2: 
         GPIO.cleanup()
         menu()
     # If they've guessed the wrong number update scoreCount and do a check on For Accuracy LED
-    elif (GuessNumber!= value) :
-        scoreCount+=1
+    elif (guess_num!= value) :
+        scorecount+=1
         accuracy_leds() 
-        if (abs(value)-abs(GuessNumber)<=3):  
+        if (abs(value)-abs(guess_num)<=3):  
             trigger_buzzer()
     else:
-        scoreCount+=1 # Update scores
+        scorecount+=1 # Update scores
         GPIO.output(LED_value, False) # Switch off LEDs
         GPIO.output(buzzer,GPIO.LOW) # Switch off buzzer 
         save_scores() # The Above steps are done by save_scores
