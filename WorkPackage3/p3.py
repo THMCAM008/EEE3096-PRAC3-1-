@@ -213,7 +213,7 @@ def btn_guess_pressed(channel):
     if time_button <0.65:
         scorecount += 1
         if guess_num-value != 0:
-            trigger_buzzer
+            trigger_buzzer()
             accuracy_leds()
         else:
             GPIO.output(LED_value[0], GPIO.LOW)
