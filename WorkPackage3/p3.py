@@ -206,7 +206,7 @@ def btn_guess_pressed(channel):
     
 
     # Compare the actual value with the user value displayed on the LEDs
-    while GPIO.input(channel) == 0:
+    while GPIO.input(btn_submit) == 0:
         pass
     if time_button>2: 
         GPIO.cleanup()
