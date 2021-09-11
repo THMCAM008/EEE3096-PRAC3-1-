@@ -1,9 +1,8 @@
-# Import libraries
 import RPi.GPIO as GPIO
 import random
 import ES2EEPROMUtils
 import os
-
+import time 
 # some global variables that need to change as we run the program
 end_of_game = None  # set if the user wins or ends the game
 Score_Values = []   # Stores the scores fetched from the EEPROM using the fetch_scores function
@@ -105,6 +104,7 @@ def setup():
     # Setup debouncing and callbacks
     GPIO.add_event_callback(btn_increase,btn_increase_pressed,bouncetime=200)
     GPIO.add_event_callback(btn_submit,btn_guess_pressed, bouncetime=200)
+    pass
 
 # Load high scores
 def fetch_scores():
@@ -117,7 +117,7 @@ def fetch_scores():
     # convert the codes back to ascii
     for i in range(1, score_count+1):
         reset = []  #ensures that reset is emptied before every iteration
-        score = read_block(i,4) # This will read registers 1 to 4 from block i and place it into scores
+        score = eeprom.read_block(i,4) # This will read registers 1 to 4 from block i and place it into scores
 
         # Convert the "letter" registers into char values to generate words
         letter1 = chr(score[0])
@@ -155,6 +155,7 @@ def save_scores():
             transmittedvalues.append(ord(Scores[0][i]))
         transmittedvalues.append(sortedArray[1])
     eeprom.write_block(1,transmittedvalues)
+    
     pass
 
 
@@ -261,15 +262,15 @@ def trigger_buzzer():
     buzzerpwm.start(50)
     # If the user is off by an absolute value of 3, the buzzer should sound once every second
     if abs(guess_num - value) == 1:
-        buzzerpwm.ChanngeFrequency(4)
+        buzzerpwm.ChangeFrequency(4)
 
 
     # If the user is off by an absolute value of 2, the buzzer should sound twice every second
     if abs(guess_num - value) == 2:
-        buzzerpwm.ChanngeFrequency(2)
+        buzzerpwm.ChangeFrequency(2)
     # If the user is off by an absolute value of 1, the buzzer should sound 4 times a second
     if abs(guess_num - value) == 3:
-        buzzerpwm.ChanngeFrequency(1)
+        buzzerpwm.ChangeFrequency(1)
     pass
 
 
