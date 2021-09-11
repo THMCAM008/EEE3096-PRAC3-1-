@@ -155,7 +155,7 @@ def save_scores():
     for Scores in sortedArray: #adds the name and score number to a matrix which is written into the eeprom
         for i in range(3): #loops through 3 letters in sortedArray and converts it into binary for the EEPROM
             transmittedvalues.append(ord(Scores[0][i]))
-        transmittedvalues.append(sortedArray[1])
+        transmittedvalues.append(Scores[1])
     eeprom.write_block(1,transmittedvalues)
     
     pass
