@@ -223,7 +223,7 @@ def btn_guess_pressed(channel):
         GPIO.output(buzzer,GPIO.LOW) # Switch off buzzer 
         save_scores() # The Above steps are done by save_scores
         menu() # return to menu
- pass
+    pass
   
 
 # LED Brightness
