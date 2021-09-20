@@ -254,26 +254,20 @@ def accuracy_leds():
     # - The % brightness should be directly proportional to the % "closeness"
     # - For example if the answer is 6 and a user guesses 4, the brightness should be at 4/6*100 = 66%
     # - If they guessed 7, the brightness would be at ((8-7)/(8-6)*100 = 50%
-    global guess_num, ledpwm,value
-    ledpwm.start(0)
-    gn_1 = 8 - guess_num
-    val_1 = 8 - value
-    # Set the brightness of the LED based on how close the guess is to the answer
-    if (guess_num < value):
-        duty_cycle = (guess_num / value) * 100
-        ledpwm.ChangeDutyCycle(duty_cycle)
-
-    # - The % brightness should be directly proportional to the % "closeness"
-    # - For example if the answer is 6 and a user guesses 4, the brightness should be at 4/6*100 = 66%
-    # - If they guessed 7, the brightness would be at ((8-7)/(8-6)*100 = 50%
+    global first_time, value, current_guess
+    
+    dutyCycle = 100 - abs(value-current_guess)/7*100
+    
+    if first_time ==1:
+        ledpwm.ChangeFrequency(50)
+        ledpwm.start(dutycycle)
+        first_time =0
     else:
-        duty_cycle_1 = (gn_1 / val_1) * 100
-        ledpwm.ChangeDutyCycle(duty_cycle_1)
+        ledpwm.ChangeDutyCycle(dutyCycle)
     pass
 
 # Sound Buzzer
 def trigger_buzzer():
-    global guess_num, buzzerpwm, value
     # The buzzer operates differently from the LED
     # While we want the brightness of the LED to change(duty cycle), we want the frequency of the buzzer to change
     # The buzzer duty cycle should be left at 50%
