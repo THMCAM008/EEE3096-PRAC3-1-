@@ -113,7 +113,7 @@ def fetch_scores():
     score_count = eeprom.read_byte(0)
 
     # Form an array of scores and names taken from the EEPROM into a 2D array
-    scorelist = []
+    scores = []
     # Get the scores
     # convert the codes back to ascii
     for i in range(1, score_count+1):
@@ -131,7 +131,7 @@ def fetch_scores():
         reset.append(name)
         reset.append(score[3])
 
-        scorelist.append(reset) #Adds the values from reset to scorelist, to form a 2D array of Name and Score
+        scores.append(reset) #Adds the values from reset to scorelist, to form a 2D array of Name and Score
      # return back the results
     return score_count, scorelist
 
@@ -141,7 +141,7 @@ def save_scores(name):
     # fetch scores
     count,scores = fetch_scores()
     n = list(name)
-    n.append(num_guess)
+    n.append(guess_num)
     
     for i in range(int(count)):
         if guess_num < int(scores[i][3]):
@@ -203,15 +203,15 @@ def btn_guess_pressed(channel):
     # - add the new score
     # - sort the scores
     # - Store the scores back to the EEPROM, being sure to update the score count
-    global guess_num, scurrent_guess, buzzer, value,buzzerpwm,ledpwm
+    global guess_num, current_guess, buzzer, value,buzzerpwm,ledpwm
 
     # If they've pressed and held the button, clear up the GPIO and take them back to the menu screen
     time_s = time.time()
-    while GPIO.input(btn_submit) ==0:
+    while GPIO.input(channel) ==0:
         pass
     time_button = time.time() - time_s
     
-    if button_time < 0.65:
+    if time_button < 0.65:
         guess_num +=1
         if current_guess- value !=0:
             trigger_buzzer()
@@ -260,7 +260,7 @@ def accuracy_leds():
     
     if first_time ==1:
         ledpwm.ChangeFrequency(50)
-        ledpwm.start(dutycycle)
+        ledpwm.start(dutyCycle)
         first_time =0
     else:
         ledpwm.ChangeDutyCycle(dutyCycle)
