@@ -5,11 +5,10 @@ import os
 import time 
 # some global variables that need to change as we run the program
 end_of_game = None  # set if the user wins or ends the game
-Score_Values = []   # Stores the scores fetched from the EEPROM using the fetch_scores function
-totalscores = 0
-scorecount = 0
+current_guess = 0
 value = 0
 guess_num = 0
+first_time= 1
 # DEFINE THE PINS USED HERE
 LED_value = [11, 13, 15]
 LED_accuracy = 32
@@ -138,26 +137,24 @@ def fetch_scores():
 
 
 # Save high scores
-def save_scores():
-    global Score_Values, totalscores, scorecount
+def save_scores(name):
     # fetch scores
-    totalscores,Score_Values = fetch_scores()
-    eeprom.write_byte(0, totalscores+ 1)  # update total amount of scores
-    Name = input("Enter a 3 letter name: \n")  # Prompt user for their Name
-    inputScore = [Name[:3], scorecount] # Holder for the name and score number to be sent to the eeprom
-    Score_Values.append(inputScore) #Adds the name and score counts to the score values array
-
-    #sort
-    sortedArray = sorted(Score_Values,key=lambda x: x[1])
-
-    #Write the given values to the EEPROM
-    transmittedvalues = []
-    for Scores in sortedArray: #adds the name and score number to a matrix which is written into the eeprom
-        for i in range(3): #loops through 3 letters in sortedArray and converts it into binary for the EEPROM
-            transmittedvalues.append(ord(Scores[0][i]))
-        transmittedvalues.append(Scores[1])
-    eeprom.write_block(1,transmittedvalues)
+    count,scores = fetch_scores()
+    n = list(name)
+    n.append(num_guess)
     
+    for i in range(int(count)):
+        if guess_num < int(scores[i][3]):
+            scores.insert(i, n)
+            break
+    count +=1 
+    #write scores
+    eeprom.write_byte(0,count)
+    
+    for i in range(int(count)):
+        for x in range(3):
+            scores[i][x] = ord(scores[i][x])
+        eeprom.write_block(i+1, scores[i])
     pass
 
 
@@ -171,18 +168,26 @@ def btn_increase_pressed(channel):
     # Increase the value shown on the LEDs
     # You can choose to have a global variable store the user's current guess, 
     # or just pull the value off the LEDs when a user makes a guess
-    global guess_num
-    if guess_num == 8:
-        guess_num = 0
-
-    # Increase the value shown on the LEDs
-
-    if GPIO.event_detected(channel):
-        guess_num += 1
-
-        GPIO.output(LED_value[0], guess_num & 0x01)
-        GPIO.output(LED_value[1], guess_num & 0x02)
-        GPIO.output(LED_value[2], guess_num & 0x04)
+    global current_guess
+    if current_guess !=7:
+        current_guess+=1
+    else:
+        current_guess = 0
+    
+    bin = format(current_guess, '03b')
+    
+    if int(bin[0]) ==1:
+        GPIO.output(LED_value[0], GPIO.HIGH)
+    else:
+        GPIO.output(LED_value[0], GPIO.LOW)
+    if int(bin[1]) ==1:
+        GPIO.output(LED_value[1], GPIO.HIGH)
+    else:
+        GPIO.output(LED_value[1], GPIO.LOW)
+    if int(bin[2]) ==1:
+        GPIO.output(LED_value[2], GPIO.HIGH)
+    else:
+        GPIO.output(LED_value[2], GPIO.LOW)
     pass
 
 # Guess button
@@ -198,32 +203,49 @@ def btn_guess_pressed(channel):
     # - add the new score
     # - sort the scores
     # - Store the scores back to the EEPROM, being sure to update the score count
-    global guess_num, scorecount, buzzer, value,buzzerpwm,ledpwm
+    global guess_num, scurrent_guess, buzzer, value,buzzerpwm,ledpwm
 
     # If they've pressed and held the button, clear up the GPIO and take them back to the menu screen
     time_s = time.time()
-    time_button = time.time() - time_s
     while GPIO.input(btn_submit) ==0:
         pass
-    # Compare the actual value with the user value displayed on the LEDs
-    while GPIO.input(channel) == 0:
-        pass
-    if time_button>2: 
-        GPIO.cleanup()
-        menu()
-    # If they've guessed the wrong number update scoreCount and do a check on For Accuracy LED
-    elif (guess_num!= value) :
-        scorecount+=1
-        accuracy_leds() 
-        if (abs(value)-abs(guess_num)<=3):  
+    time_button = time.time() - time_s
+    
+    if button_time < 0.65:
+        guess_num +=1
+        if current_guess- value !=0:
             trigger_buzzer()
-    else:
-        scorecount+=1 # Update scores
-        GPIO.output(LED_value, False) # Switch off LEDs
-        GPIO.output(buzzer,GPIO.LOW) # Switch off buzzer 
-        save_scores() # The Above steps are done by save_scores
-        menu() # return to menu
-    pass
+            accuracy_leds()
+        else:
+            GPIO.output(LED_value[0], GPIO.LOW)
+            GPIO.output(LED_value[1], GPIO.LOW)
+            GPIO.output(LED_value[2], GPIO.LOW)
+            buzzerpwm.ChangeDutyCycle(0)
+            ledpwm.ChangeDutyCycle(0)
+            current_guess =0
+            
+            print("Congratulations! You have guessed the right number!")
+            name = input("Enter a three letter name to save your score: ")
+            name_length = 0
+            while name_length !=1:
+                if len(name) >3:
+                    name = input("That name has too many charachters. Please enter a shorter one: ")
+                elif len(name) <3: 
+                    name = input("That name has too little charachters. Please enter a longer one: ")
+                else: 
+                    name_length = 1
+            save_scores(name)
+            count,scores = fetch_scores()
+            menu()
+        else:
+            GPIO.output(LED_value[0], GPIO.LOW)
+            GPIO.output(LED_value[1], GPIO.LOW)
+            GPIO.output(LED_value[2], GPIO.LOW)
+            buzzerpwm.ChangeDutyCycle(0)
+            ledpwm.ChangeDutyCycle(0)
+            current_guess =0
+            menu()
+        pass
   
 
 # LED Brightness
@@ -255,12 +277,12 @@ def trigger_buzzer():
     # The buzzer operates differently from the LED
     # While we want the brightness of the LED to change(duty cycle), we want the frequency of the buzzer to change
     # The buzzer duty cycle should be left at 50%
-    if abs(value - guess_num) >=3:
+    if abs(value - current_guess) >=3:
         buzzerpwm.start(50)
-    elif abs(value-guess_num)==2:
+    elif abs(value-current_guess)==2:
         buzzerpwm.ChangeFrequency(2)
         buzzerpwm.start(50)
-    elif abs(value-guess_num)==1:
+    elif abs(value-current_guess)==1:
         buzzerpwm.ChangeFrequency(4)
         buzzerpwm.start(50)
     pass
