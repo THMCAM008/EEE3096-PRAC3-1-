@@ -137,16 +137,16 @@ def fetch_scores():
 
         scores.append(reset) #Adds the values from reset to scorelist, to form a 2D array of Name and Score
      # return back the results
-    return score_count, scorelist
+    return score_count, scores
 
 
 # Save high scores
 def save_scores(name):
-    global Score_Values, totalscores, scorecount
+    global Score_Values, guess_num, current_guess
     # fetch scores
-    totalscores,Score_Values = fetch_scores()
-    eeprom.write_byte(0, totalscores+ 1)  # update total amount of score
-    inputScore = [name[:3], scorecount] # Holder for the name and score number to be sent to the eeprom
+    count,Score_Values = fetch_scores()
+    eeprom.write_byte(0, count+1)  # update total amount of score
+    inputScore = [name[:3], current_guess] # Holder for the name and score number to be sent to the eeprom
     Score_Values.append(inputScore) #Adds the name and score counts to the score values array
 
     #sort
