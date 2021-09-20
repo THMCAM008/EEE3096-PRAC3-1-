@@ -237,15 +237,15 @@ def btn_guess_pressed(channel):
             save_scores(name)
             count,scores = fetch_scores()
             menu()
-        else:
-            GPIO.output(LED_value[0], GPIO.LOW)
-            GPIO.output(LED_value[1], GPIO.LOW)
-            GPIO.output(LED_value[2], GPIO.LOW)
-            buzzerpwm.ChangeDutyCycle(0)
-            ledpwm.ChangeDutyCycle(0)
-            current_guess =0
-            menu()
-        pass
+    else:
+        GPIO.output(LED_value[0], GPIO.LOW)
+        GPIO.output(LED_value[1], GPIO.LOW)
+        GPIO.output(LED_value[2], GPIO.LOW)
+        buzzerpwm.ChangeDutyCycle(0)
+        ledpwm.ChangeDutyCycle(0)
+        current_guess =0
+        menu()
+    pass
   
 
 # LED Brightness
