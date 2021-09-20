@@ -9,6 +9,9 @@ current_guess = 0
 value = 0
 guess_num = 0
 first_time= 1
+totalscores = 0
+Score_Value = []
+scorecount =0
 # DEFINE THE PINS USED HERE
 LED_value = [11, 13, 15]
 LED_accuracy = 32
@@ -46,6 +49,7 @@ def menu():
         print("Starting a new round!")
         print("Use the buttons on the Pi to make and submit your guess!")
         print("Press and hold the guess button to cancel your game")
+        global value
         value = generate_number()
         while not end_of_game:
             pass
@@ -138,23 +142,24 @@ def fetch_scores():
 
 # Save high scores
 def save_scores(name):
+    global Score_Values, totalscores, scorecount
     # fetch scores
-    count,scores = fetch_scores()
-    n = list(name)
-    n.append(guess_num)
-    
-    for i in range(int(count)):
-        if guess_num < int(scores[i][3]):
-            scores.insert(i, n)
-            break
-    count +=1 
-    #write scores
-    eeprom.write_byte(0,count)
-    
-    for i in range(int(count)):
-        for x in range(3):
-            scores[i][x] = ord(scores[i][x])
-        eeprom.write_block(i+1, scores[i])
+    totalscores,Score_Values = fetch_scores()
+    eeprom.write_byte(0, totalscores+ 1)  # update total amount of scores
+    Name = input("Enter a 3 letter name: \n")  # Prompt user for their Name
+    inputScore = [Name[:3], scorecount] # Holder for the name and score number to be sent to the eeprom
+    Score_Values.append(inputScore) #Adds the name and score counts to the score values array
+
+    #sort
+    sortedArray = sorted(Score_Values,key=lambda x: x[1])
+
+    #Write the given values to the EEPROM
+    transmittedvalues = []
+    for Scores in sortedArray: #adds the name and score number to a matrix which is written into the eeprom
+        for i in range(3): #loops through 3 letters in sortedArray and converts it into binary for the EEPROM
+            transmittedvalues.append(ord(Scores[0][i]))
+        transmittedvalues.append(Scores[1])
+    eeprom.write_block(1,transmittedvalues)
     pass
 
 
