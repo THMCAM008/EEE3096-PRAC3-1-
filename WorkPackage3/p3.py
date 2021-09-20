@@ -145,9 +145,8 @@ def save_scores(name):
     global Score_Values, totalscores, scorecount
     # fetch scores
     totalscores,Score_Values = fetch_scores()
-    eeprom.write_byte(0, totalscores+ 1)  # update total amount of scores
-    Name = input("Enter a 3 letter name: \n")  # Prompt user for their Name
-    inputScore = [Name[:3], scorecount] # Holder for the name and score number to be sent to the eeprom
+    eeprom.write_byte(0, totalscores+ 1)  # update total amount of score
+    inputScore = [name[:3], scorecount] # Holder for the name and score number to be sent to the eeprom
     Score_Values.append(inputScore) #Adds the name and score counts to the score values array
 
     #sort
